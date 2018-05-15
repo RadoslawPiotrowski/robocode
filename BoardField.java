@@ -15,18 +15,19 @@ import java.awt.geom.Point2D;
 public class BoardField {
     int col;
     int row;
-    Point2D center;
+    Point2D center = setCenterOfField();
     int points = 0;
     double sizeOfField;
     boolean occupied = false;
+    boolean closed = false;
+    boolean open;
     
-//Point2D setCenterOfField(){
-//    double corX = this.col + 20;
-//    double corY = this.
-//    Point2D point = new Point2D
-//    
-//    return Point2D;
-//}
+Point2D setCenterOfField(){
+    double corX = this.col + 20;
+    double corY = this.row + 20;
+    Point2D point = new Point2D.Double(corX, corY);    
+    return point;
+}
     
 int getCol(){ return col; }
 
@@ -36,7 +37,15 @@ int getpoints(){ return points; }
 
 double getSizeOfField(){ return sizeOfField; }
 
-boolean isOcucpied(){ return occupied;}
+boolean isOccupied(){ return occupied;}
 
-void setOccupied(){ occupied = true;}
+boolean isClosed(){ return closed;}
+
+void setOccupied(){ 
+    occupied = true;
+    closed = true;
+    }
+void setClosed(){ 
+    closed = true;
+    }
 }

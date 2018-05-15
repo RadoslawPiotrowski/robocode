@@ -33,7 +33,7 @@ public class RadRobot1 extends AdvancedRobot {
     Point2D startPoint;
     
     // Point of Finish
-    Point2D endPoint;
+    Point2D endPoint = new Point2D.Double(0,0);
     
     boolean endPointSetted = false;
     
@@ -41,13 +41,19 @@ public class RadRobot1 extends AdvancedRobot {
 // cordinates of scanned Robot
     int scannedX = Integer.MIN_VALUE;
     int scannedY = Integer.MAX_VALUE;
-        
-    int sizeOfFields = 8;      //przy 8 już się sypie
+// size of Fields
+    int sizeOfFields = 8;      
+// offset to Setting fields to close list
+    int howManyFieldsToCheck = 20 / sizeOfFields  + ((20 % sizeOfFields == 0) ? 0 : 1);
        
 // list2d of scanned Robots
     List<Point2D> obstaclList = new ArrayList<>();
 // list of field objects
     List<BoardField> listOfFields = new ArrayList<BoardField>();
+// Open list of A* algorithm
+    List<Point2D> openList = new ArrayList<>();
+// Close list of A* algorithm
+    List<Point2D> closeList = new ArrayList<>();
     
     
     public void run() {
@@ -63,6 +69,8 @@ public class RadRobot1 extends AdvancedRobot {
         // turning radar Right to keep once scanning 
         turnRadarRight(1);
         
+        
+        
         boolean occupiedFieldsSetted = false;
         // ruch robota
         while (true) {
@@ -74,8 +82,21 @@ public class RadRobot1 extends AdvancedRobot {
                 setOccupiedFields();
                 occupiedFieldsSetted = true ;
             }
+            if (occupiedFieldsSetted == true && !endPoint.equals(0)){
+                runAlgorithm();
+            }
             execute();
     }
+}
+private void runAlgorithm(){
+    
+}
+
+
+private boolean isNeighborOcupied(BoardField field){
+    boolean isToClose = false;
+    
+    return isToClose;
 }
     
 private boolean checkIfIsOccupied(Point2D point){
@@ -83,7 +104,7 @@ private boolean checkIfIsOccupied(Point2D point){
     int corX = (int)point.getX()/ sizeOfFields;
     int corY = (int)point.getY()/ sizeOfFields;
     int fieldIdx = translateToArrayPos(corX, corY);
-    if (listOfFields.get(fieldIdx).isOcucpied() == true) isOccupied = true;
+    if (listOfFields.get(fieldIdx).isOccupied() == true) isOccupied = true;
     return isOccupied;
 }
 
@@ -113,14 +134,18 @@ private void setOccupiedFields(){
     int numOfRow = (int)mapHeight/sizeOfFields;
     int numOfCol = (int)mapWidth/sizeOfFields;
     for(Point2D obstacle : obstaclList){
-        out.printf("\nOBIEKT X: %f Y: %f",obstacle.getX(), obstacle.getY());
+//        out.printf("\nOBIEKT X: %f Y: %f",obstacle.getX(), obstacle.getY());
+        
         Point2D leftDownCorner = new Point2D.Double( obstacle.getX() - 20 , obstacle.getY() - 20);
         Point2D rightDownCorner = new Point2D.Double( obstacle.getX() + 20 , obstacle.getY() - 20);
         Point2D leftUpCorner = new Point2D.Double( obstacle.getX() - 20 , obstacle.getY() + 20);
         Point2D rightUpCorner = new Point2D.Double( obstacle.getX() + 20 , obstacle.getY() + 20);
+        
         int corX = ((int)leftDownCorner.getX()) / sizeOfFields ;
         int corY = ((int)leftDownCorner.getY()) / sizeOfFields ;
-        out.printf("\nCORDS [%d , %d]",corX, corY);
+        
+//        out.printf("\nCORDS [%d , %d]",corX, corY);
+        
         int fromLeftCrn = translateToArrayPos(corX, corY);
         corX = ((int)rightDownCorner.getX()) / sizeOfFields ;
         corY = ((int)rightDownCorner.getY()) / sizeOfFields ;
@@ -136,10 +161,21 @@ private void setOccupiedFields(){
         for (int k = 0; k <= howManyRows ; k++){
             for(int i = leftBegining ; i <= rightEnd ; i++){
                 listOfFields.get(i + numOfCol * k).setOccupied();
+                closeFieldsTooCloseToWall(k, i);
             }
         }
-        
     }  
+}
+
+private void closeFieldsTooCloseToWall(int row, int col){
+    int numOfColumns = (int)getBattleFieldWidth()/sizeOfFields;
+    for(int i = row - howManyFieldsToCheck ; i < row + howManyFieldsToCheck ; i++){
+        for(int j = col - howManyFieldsToCheck; j < col + howManyFieldsToCheck; j++){
+            if( listOfFields.get(j + numOfColumns * i).isClosed() == false){
+                listOfFields.get(j + numOfColumns * i).setClosed();
+            }
+        }   
+    }
 }
 
 private int translateToArrayPos(int corx, int cory){
@@ -193,6 +229,7 @@ public void onMousePressed(MouseEvent e){
         aimX = e.getX();
         aimY = e.getY();
         out.printf("KLIK [%d , %d]",aimX, aimY);
+        out.printf("NUMBER OF FIELDS TO CHECK %d", howManyFieldsToCheck );
 //        driveToMouse();
 //        out.println("VECTOR");
 //        printTheObstacles();
@@ -227,14 +264,12 @@ public void driveToMouse(){
     setAhead(forwardDrive);
 }
 
-public void onHitWall(HitWallEvent e){
-    
-}
 
 public void onPaint(Graphics2D g) {
     drawPosition(g);
     drawCrossOnClicked(g);
     drawRectOnScannedRobots(g);
+    drawRectOnClossedField(g);
     drawRectOnOccupiedFields(g);
     drawStartPointRect(g);
     if (endPointSetted) drawEndPointRect(g);
@@ -249,6 +284,15 @@ public void drawStartPointRect(Graphics2D g){
     drawRectOnField(g, color, startPoint);
 }
 
+public void drawRectOnClossedField(Graphics2D g){
+    g.setColor(new Color(0xff, 0x8c, 0x00, 0x50));
+    for(BoardField field : listOfFields){
+        if (field.isClosed() == true){
+            g.fillRect((int)field.getCol()*sizeOfFields, (int)field.getRow()*sizeOfFields, (int)field.getSizeOfField(), (int)field.getSizeOfField());
+        }   
+    }
+}
+
 public void drawRectOnField(Graphics2D g, Color color, Point2D point){
     int fieldIdx = translatePointToArrayPos(point);
     g.setColor(color);
@@ -258,7 +302,7 @@ public void drawRectOnField(Graphics2D g, Color color, Point2D point){
 public void drawRectOnOccupiedFields(Graphics2D g){
     g.setColor(new Color(0x00, 0x00, 0xff, 0x50));
     for(BoardField field : listOfFields){
-        if (field.isOcucpied() == true){
+        if (field.isOccupied() == true){
             g.fillRect((int)field.getCol()*sizeOfFields, (int)field.getRow()*sizeOfFields, (int)field.getSizeOfField(), (int)field.getSizeOfField());
         }   
     }
