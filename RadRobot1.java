@@ -56,12 +56,13 @@ public class RadRobot1 extends AdvancedRobot {
     List<FieldIdx> openList = new ArrayList<>();
 // Close list of A* algorithm
     List<FieldIdx> closeList = new ArrayList<>();
-// Path list of next field Indexes creating path
-    List<FieldIdx> pathList = new ArrayList<>();
+// Path list of all possible moves
+    List<PathIdx> pathList = new ArrayList<>();
 // one of the way to end the algorithm
+    List<FieldIdx> pathToPoint = new ArrayList<>();
     boolean algorithmEnd = false;
-
-    
+    List<FieldIdx> myList = new ArrayList<>();
+        
     public void run() {
         // Set up the Fields
         setUpFields();
@@ -122,6 +123,71 @@ public class RadRobot1 extends AdvancedRobot {
             execute();
     }
 }
+ 
+private void createPath(){
+    int startFieldIdx = translatePointToArrayPos(startPoint);
+    int endFieldIdx = translatePointToArrayPos(endPoint);
+    out.printf("\nJESTEM1");
+    int indexOfLast = getIndexOfPathField(endFieldIdx);
+    addFieldWithIndexToPathToPoint(endFieldIdx);
+    out.printf("\n sizeOfPathToPoin: %d",pathToPoint.size());
+    out.printf("\n lastElementIndex: %d", pathToPoint.get(pathToPoint.size()-1).getFieldIdx());
+    int fieldIdxToAdd = 0;
+    while(fieldIdxToAdd != startFieldIdx){
+        int indexToSearch = pathToPoint.get(pathToPoint.size()-1).getFieldIdx();
+        out.printf("\n IndexInArray: %d",indexToSearch);
+        out.printf("\n IndexOstatniego elemntu: %d",pathList.get(pathList.size()-1).getActualIdx());
+        int indexOfFieldInPathList = getIndexOfPathField(indexToSearch);
+        out.printf("\n IndexInPathList: %d",indexOfFieldInPathList);
+        fieldIdxToAdd = pathList.get(indexOfFieldInPathList).getFieldIdx();
+        out.printf("\n IndexInArray of next node: %d",fieldIdxToAdd);
+        addFieldWithIndexToPathToPoint(fieldIdxToAdd);
+        out.printf("\nJESTEM2");
+//        for(FieldIdx field : pathList){  
+//            if(isNeighbor(index, field.getFieldIdx())){
+//                if(listOfFields.get(field.getFieldIdx()).getScore() < lowerCost ){
+//                  lowerCostNeghborIdx = field.getFieldIdx();
+//                }
+//            }
+//        }
+    }
+    
+}
+
+private int getIndexOfPathField(int fieldIdx){
+    int cameFromFieldIndex = 0;
+    int endFieldIdx = translatePointToArrayPos(endPoint);
+    for(PathIdx field : pathList){
+        if( field.getActualIdx() == endFieldIdx){
+            out.printf("\nDOCELOWY ELEMENT JEST W LISCIE \n NA INDEXIE: %d", pathList.indexOf(field));
+        }
+    }
+    for(PathIdx field : pathList){
+        if( field.getActualIdx() == fieldIdx){
+            cameFromFieldIndex = pathList.indexOf(field);
+        }
+    }
+    return cameFromFieldIndex;
+}
+
+private boolean isNeighbor(int startIdx, int endIdx){
+    boolean isNeighbor = false;
+    int numOfColumns = (int)getBattleFieldWidth()/sizeOfFields;
+    if(startIdx == endIdx -1 || startIdx == endIdx +1){
+        isNeighbor = true;
+    }
+    if(startIdx == endIdx + numOfColumns || startIdx == endIdx - numOfColumns){
+       isNeighbor = true; 
+    }
+    if(startIdx == endIdx + numOfColumns +1 || startIdx == endIdx - numOfColumns +1 ){
+       isNeighbor = true; 
+    }
+    if(startIdx == endIdx + numOfColumns -1 || startIdx == endIdx - numOfColumns -1 ){
+       isNeighbor = true; 
+    }
+
+    return isNeighbor;
+}
 
 private void setUpBeforeAlgorithm(){
     int startFieldIdx = translatePointToArrayPos(startPoint);
@@ -136,6 +202,8 @@ private void runAlgorithm(){
         int endFieldIdx = translatePointToArrayPos(endPoint);
         int currentNodeIdx = getNodeWithLowestCost();
         if (currentNodeIdx == endFieldIdx){
+            checkNeighborNodes(currentNodeIdx);
+            createPath();
             algorithmEnd = true;
         }
         openList = removeNodeFromArrayList(openList, currentNodeIdx);
@@ -152,6 +220,7 @@ private void checkNeighborNodes(int fieldIdx){
     int numOfColumns = (int)getBattleFieldWidth()/sizeOfFields;
     int centerElementRow = listOfFields.get(fieldIdx).getRow();
     int centerElementCol = listOfFields.get(fieldIdx).getCol();
+    
     out.printf("\nTUT1");
     out.printf("  Analize: %d", fieldIdx);
     for(int i = centerElementRow - 1 ; i <= centerElementRow + 1 ; i++){
@@ -175,7 +244,7 @@ private void checkNeighborNodes(int fieldIdx){
             if (unCertainGScore >= listOfFields.get(index).getScore()){
                 continue;
             }
-            addFieldWithIndexToPathList(index);
+            addFieldWithIndexToPathList(fieldIdx, index);
             listOfFields.get(index).setGScore(unCertainGScore);
             listOfFields.get(index).setFScore(listOfFields.get(index).getGScore() + heuristicCostEstimate(index, endFieldIdx) );  
         }   
@@ -187,6 +256,18 @@ private int distanceBetween(int startIndex, int endIndex){
     Point2D startField = listOfFields.get(startIndex).getCenter();
     int distance = (int)(startField.distance(listOfFields.get(endIndex).getCenter()));
     return distance;
+}
+
+public boolean isInPathToPointList(int index){
+    boolean inPathList = false;
+    if(pathToPoint.isEmpty() == false){
+        for(FieldIdx fieldIndex : pathToPoint){
+            if( index == fieldIndex.getFieldIdx()){
+               inPathList = true;
+            }   
+        }
+    }
+    return inPathList;
 }
 
 public boolean isInOpenList(int index){
@@ -211,6 +292,13 @@ public boolean isInCloseList(int index){
         }
     }
     return inCloseList;
+}
+
+public void printPathInformation(){
+    if(openList.isEmpty() == false){
+        out.printf("\nLIST");
+        for(PathIdx fieldIndex : pathList){out.printf("\nIdx: %d ", fieldIndex.getFieldIdx());}
+    }  
 }
 
 public void printDebugInformation(){
@@ -246,9 +334,22 @@ public int getNodeWithLowestCost(){
     return lowestCostIndex;
 }
 
-public void addFieldWithIndexToPathList(int index){
+public void addToMyList(int index){
     FieldIdx fieldIndex = new FieldIdx();
     fieldIndex.setFieldIdx(index);
+    myList.add(fieldIndex);
+}
+
+public void addFieldWithIndexToPathToPoint(int index){
+    FieldIdx fieldIndex = new FieldIdx();
+    fieldIndex.setFieldIdx(index);
+    pathToPoint.add(fieldIndex);
+}
+
+public void addFieldWithIndexToPathList(int index, int trunkIdx){
+    PathIdx fieldIndex = new PathIdx();
+    fieldIndex.setFieldIdx(index);
+    fieldIndex.setActualIdx(trunkIdx);
     pathList.add(fieldIndex);
 }
 
@@ -465,7 +566,26 @@ public void onPaint(Graphics2D g) {
     drawStartPointRect(g);
     drawOpenListFields(g);
     if (endPointSetted) drawEndPointRect(g);
+    drawPathToPointFields(g);
+    drawRedField(g);
+    
         
+}
+
+public void drawRedField(Graphics2D g){
+    g.setColor(new Color(0xff, 0x00, 0x00, 0x80));
+    for(FieldIdx fieldIndex : myList){
+        int index = fieldIndex.getFieldIdx();
+        g.fillRect((int)listOfFields.get(index).getCol()*sizeOfFields, (int)listOfFields.get(index).getRow()*sizeOfFields, (int)listOfFields.get(index).getSizeOfField(), (int)listOfFields.get(index).getSizeOfField());
+    }
+}
+
+public void drawPathToPointFields(Graphics2D g){
+    g.setColor(new Color(0xff, 0xff, 0xff, 0x80));
+    for(FieldIdx fieldIndex : pathToPoint){
+        int index = fieldIndex.getFieldIdx();
+        g.fillRect((int)listOfFields.get(index).getCol()*sizeOfFields, (int)listOfFields.get(index).getRow()*sizeOfFields, (int)listOfFields.get(index).getSizeOfField(), (int)listOfFields.get(index).getSizeOfField());
+    }
 }
 
 public void drawOpenListFields(Graphics2D g){
