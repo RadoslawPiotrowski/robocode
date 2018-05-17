@@ -16,11 +16,12 @@ public class BoardField {
     int col;
     int row;
     Point2D center = setCenterOfField();
-    int points = 0;
+    int gScore = Integer.MAX_VALUE / 2;
+    int fScore = Integer.MAX_VALUE / 2;
     double sizeOfField;
     boolean occupied = false;
     boolean closed = false;
-    boolean open;
+    boolean open = false;
     
 Point2D setCenterOfField(){
     double corX = this.col + 20;
@@ -33,7 +34,15 @@ int getCol(){ return col; }
 
 int getRow(){ return row; }
 
-int getpoints(){ return points; }
+void setGScore(int score){ this.gScore = score;}
+
+int getGScore(){ return this.gScore ;}
+
+void setFScore(int score){ this.fScore = score;}
+
+Point2D getCenter(){ return this.center;}
+
+int getScore(){ return (gScore + fScore);}
 
 double getSizeOfField(){ return sizeOfField; }
 
@@ -41,11 +50,18 @@ boolean isOccupied(){ return occupied;}
 
 boolean isClosed(){ return closed;}
 
+boolean isOpen(){ return open;}
+
 void setOccupied(){ 
-    occupied = true;
-    closed = true;
+    this.occupied = true;
+    this.closed = true;
+    this.open = false;
     }
 void setClosed(){ 
-    closed = true;
+    this.closed = true;
+    this.open = false;
+    }
+void setOpen(){ 
+    this.open = true;
     }
 }
